@@ -2,28 +2,66 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <title>Infinite Craft - Todo en Uno (Definitiva)</title>
+  <title>Grafo Infinite Craft - Adria</title>
   <style>
-    body { font-family: Arial; text-align: center; padding: 50px; background: #111; color: #fff; }
-    button, input { padding: 15px; font-size: 18px; margin: 10px; }
-    #status { margin: 20px; font-size: 20px; color: #0f0; }
+    body { font-family: Arial, sans-serif; text-align: center; padding: 40px; background: #0d001a; color: #e0e0ff; margin: 0; }
+    h1 { color: #a78bfa; margin-bottom: 10px; }
+    p { max-width: 700px; margin: 0 auto 30px; line-height: 1.5; }
+    button, input { padding: 14px 24px; font-size: 17px; margin: 12px; border: none; border-radius: 8px; cursor: pointer; }
+    button { background: #7c3aed; color: white; }
+    button:hover { background: #9f7aea; }
+    #status { margin: 25px; font-size: 19px; color: #34d399; min-height: 30px; }
+    .container { max-width: 900px; margin: auto; }
+    .guide { background: #1e0038; padding: 20px; border-radius: 12px; margin: 20px auto; max-width: 700px; text-align: left; font-size: 15px; }
+    .guide strong { color: #c084fc; }
   </style>
 </head>
 <body>
-  <h1>🚀 Infinite Craft - Todo en Uno</h1>
-  <p>Sube tu JSON → genera TSV → abre Cosmograph automáticamente</p>
-  
-  <input type="file" id="fileInput" accept=".json">
-  <button onclick="procesarTodo()">📤 Subir JSON y todo automático</button>
-  
-  <div id="status"></div>
+  <div class="container">
+    <h1>🚀 Grafo Infinite Craft - Mi progreso</h1>
+    <p>Sube tu JSON o descárgalo directamente del juego. Luego arrastra los TSV a <a href="https://cosmograph.app" target="_blank" style="color:#c084fc;">Cosmograph</a>.</p>
+
+    <input type="file" id="fileInput" accept=".json">
+    <button onclick="procesarJSON()">📤 Subir JSON y generar TSV</button>
+
+    <br><br>
+
+    <button onclick="descargarPartidaDirecta()">🪄 Descargar JSON de partida actual (automático)</button>
+
+    <div id="status"></div>
+
+    <div class="guide">
+      <strong>¿Cómo usar el botón automático?</strong><br>
+      1. Pulsa el botón azul de arriba<br>
+      2. Se abre el juego en una pestaña nueva<br>
+      3. En esa pestaña pulsa <strong>F12</strong> → pestaña <strong>Console</strong><br>
+      4. Copia y pega este código en la consola y pulsa Enter:<br>
+      <pre style="background:#2d1b4e; padding:12px; border-radius:8px; overflow:auto; color:#e0e0ff; font-family:Consolas,monospace;">
+indexedDB.open('infinite-craft').onsuccess = e => {
+  const db = e.target.result;
+  const tx = db.transaction('items', 'readonly');
+  const store = tx.objectStore('items');
+  store.getAll().onsuccess = e2 => {
+    const data = e2.target.result;
+    const blob = new Blob([JSON.stringify(data)], {type: 'application/json'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'mi_progreso_infinite_craft.json';
+    a.click();
+    console.log('✅ Archivo descargado');
+  };
+};</pre>
+      5. Se descargará automáticamente el JSON → vuelve aquí y súbelo con el primer botón
+    </div>
+  </div>
 
   <script>
-    async function procesarTodo() {
+    async function procesarJSON() {
       const file = document.getElementById('fileInput').files[0];
-      if (!file) return alert("Selecciona tu JSON");
+      if (!file) return alert("Selecciona tu JSON primero");
       
-      document.getElementById('status').innerHTML = "⏳ Procesando... Cosmograph se abrirá solo";
+      document.getElementById('status').innerHTML = "⏳ Procesando tu partida...";
       
       const text = await file.text();
       const items = JSON.parse(text);
@@ -53,7 +91,6 @@
             const key = combo + "→" + result;
             if (!seen.has(key)) {
               seen.add(key);
-              // 3 enlaces saliendo de la combinación
               links.push([combo, A]);
               links.push([combo, B]);
               links.push([combo, result]);
@@ -73,10 +110,15 @@
       
       document.getElementById('status').innerHTML = 
         `✅ ¡Listo! Archivos generados<br>
-         Cosmograph se abre ahora... arrastra los dos TSV que se descargaron`;
-      
-      // Abrir Cosmograph automáticamente
-      setTimeout(() => window.open('https://cosmograph.app', '_blank'), 1200);
+         Abre <a href="https://cosmograph.app" target="_blank">Cosmograph</a> y arrastra los dos TSV.`;
+    }
+    
+    function descargarPartidaDirecta() {
+      window.open('https://neal.fun/infinite-craft/', '_blank');
+      document.getElementById('status').innerHTML = 
+        `✅ Juego abierto en nueva pestaña<br>
+         Pulsa F12 → Console → pega el código que ves en la guía de abajo y Enter.<br>
+         Se descargará el JSON automáticamente.`;
     }
     
     function descargar(nombre, contenido) {
