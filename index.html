@@ -13,31 +13,29 @@
     #status { margin: 25px; font-size: 19px; color: #34d399; min-height: 30px; }
     .container { max-width: 900px; margin: auto; }
     .guide { background: #1e0038; padding: 20px; border-radius: 12px; margin: 20px auto; max-width: 700px; text-align: left; font-size: 15px; }
-    .guide strong { color: #c084fc; }
+    pre { background:#2d1b4e; padding:12px; border-radius:8px; overflow:auto; color:#e0e0ff; font-family:Consolas,monospace; }
   </style>
 </head>
 <body>
   <div class="container">
-    <h1>🚀 Grafo Infinite Craft - Mi progreso</h1>
-    <p>Sube tu JSON o descárgalo directamente del juego. Luego arrastra los TSV a <a href="https://cosmograph.app" target="_blank" style="color:#c084fc;">Cosmograph</a>.</p>
+    <h1>🚀 Grafo Infinite Craft - Mi progreso (con emojis)</h1>
+    <p>Sube tu JSON → genera TSV con emojis → visualiza en Cosmograph</p>
 
     <input type="file" id="fileInput" accept=".json">
-    <button onclick="procesarJSON()">📤 Subir JSON y generar TSV</button>
+    <button onclick="procesarJSON()">📤 Subir JSON y generar TSV (con emojis)</button>
 
     <br><br>
-
-    <button onclick="descargarPartidaDirecta()">🪄 Descargar JSON de partida actual (automático)</button>
+    <button onclick="descargarPartidaDirecta()">🪄 Descargar JSON de partida actual</button>
 
     <div id="status"></div>
 
     <div class="guide">
-      <strong>¿Cómo usar el botón automático?</strong><br>
+      <strong>Cómo descargar tu partida automáticamente:</strong><br>
       1. Pulsa el botón azul de arriba<br>
       2. Se abre el juego en una pestaña nueva<br>
-      3. En esa pestaña pulsa <strong>F12</strong> → pestaña <strong>Console</strong><br>
-      4. Copia y pega este código en la consola y pulsa Enter:<br>
-      <pre style="background:#2d1b4e; padding:12px; border-radius:8px; overflow:auto; color:#e0e0ff; font-family:Consolas,monospace;">
-indexedDB.open('infinite-craft').onsuccess = e => {
+      3. Pulsa <strong>F12</strong> → pestaña <strong>Console</strong><br>
+      4. Copia y pega este código exactamente y pulsa Enter:<br>
+      <pre>indexedDB.open('infinite-craft').onsuccess = e => {
   const db = e.target.result;
   const tx = db.transaction('items', 'readonly');
   const store = tx.objectStore('items');
@@ -52,7 +50,8 @@ indexedDB.open('infinite-craft').onsuccess = e => {
     console.log('✅ Archivo descargado');
   };
 };</pre>
-      5. Se descargará automáticamente el JSON → vuelve aquí y súbelo con el primer botón
+      5. Se descargará automáticamente el JSON<br>
+      6. Vuelve aquí y súbelo con el primer botón
     </div>
   </div>
 
@@ -61,10 +60,15 @@ indexedDB.open('infinite-craft').onsuccess = e => {
       const file = document.getElementById('fileInput').files[0];
       if (!file) return alert("Selecciona tu JSON primero");
       
-      document.getElementById('status').innerHTML = "⏳ Procesando tu partida...";
+      document.getElementById('status').innerHTML = "⏳ Procesando... (con emojis)";
       
       const text = await file.text();
       const items = JSON.parse(text);
+      
+      const idToItem = {};
+      items.forEach(item => {
+        if (item && item.id !== undefined) idToItem[item.id] = item;
+      });
       
       let nodes = new Set();
       let links = [];
@@ -81,8 +85,11 @@ indexedDB.open('infinite-craft').onsuccess = e => {
           item.recipes.forEach(pair => {
             if (!pair || pair.length < 2) return;
             
-            let A = items[pair[0]] ? items[pair[0]].text : "Unknown";
-            let B = items[pair[1]] ? items[pair[1]].text : "Unknown";
+            const itemA = idToItem[pair[0]];
+            const itemB = idToItem[pair[1]];
+            
+            let A = itemA ? itemA.text : "Unknown";
+            let B = itemB ? itemB.text : "Unknown";
             
             if (A > B) [A, B] = [B, A];
             const combo = `${A} + ${B}`;
@@ -99,8 +106,19 @@ indexedDB.open('infinite-craft').onsuccess = e => {
         }
       });
       
+      // Points con emojis
       let points = "id\tlabel\tdiscovered\n";
-      Array.from(nodes).forEach(n => points += `${n}\t${n}\t1\n`);
+      Array.from(nodes).forEach(name => {
+        let emoji = "";
+        for (let item of items) {
+          if (item.text === name && item.emoji) {
+            emoji = item.emoji + " ";
+            break;
+          }
+        }
+        const label = emoji + name;
+        points += `${name}\t${label}\t1\n`;
+      });
       
       let linksCSV = "source\ttarget\n";
       links.forEach(l => linksCSV += `${l[0]}\t${l[1]}\n`);
@@ -109,16 +127,15 @@ indexedDB.open('infinite-craft').onsuccess = e => {
       descargar("links.tsv", linksCSV);
       
       document.getElementById('status').innerHTML = 
-        `✅ ¡Listo! Archivos generados<br>
-         Abre <a href="https://cosmograph.app" target="_blank">Cosmograph</a> y arrastra los dos TSV.`;
+        `✅ ¡Listo! TSV generados con emojis<br>
+         Abre <a href="https://cosmograph.app" target="_blank">Cosmograph</a> y arrastra los dos archivos`;
     }
     
     function descargarPartidaDirecta() {
       window.open('https://neal.fun/infinite-craft/', '_blank');
       document.getElementById('status').innerHTML = 
-        `✅ Juego abierto en nueva pestaña<br>
-         Pulsa F12 → Console → pega el código que ves en la guía de abajo y Enter.<br>
-         Se descargará el JSON automáticamente.`;
+        `✅ Juego abierto en nueva pestaña.<br>
+         Pulsa F12 → Console → pega el código de la guía y Enter.`;
     }
     
     function descargar(nombre, contenido) {
